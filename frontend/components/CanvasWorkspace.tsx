@@ -377,6 +377,49 @@ export const CanvasWorkspace: React.FC = () => {
   }, [handleExportSnapshot]);
 
   return (
+    // <div className="flex h-full w-full flex-1 justify-center overflow-auto bg-gray-100">
+
+    //   <div className="relative flex w-full justify-center py-10">
+
+    //     {/* ✅ FLOATING TOOLBAR */}
+    //     {selected && (
+    //       <div
+    //         className="absolute z-[9999] flex items-center gap-1 rounded-lg bg-white px-2 py-1 shadow-md border border-gray-200"
+    //         style={{
+    //           top: position.top,
+    //           left: position.left,
+    //           transform: "translate(-50%, -120%)"
+    //         }}
+    //       >
+    //         <button
+    //           onClick={() =>
+    //             (useEditorStore.getState().canvasAdapter as any)?.duplicateSelected()
+    //           }
+    //           className="p-1.5 rounded-md hover:bg-gray-100 transition"
+    //         >
+    //           <Copy size={14} />
+    //         </button>
+
+    //         <button
+    //           onClick={() =>
+    //             (useEditorStore.getState().canvasAdapter as any)?.deleteSelected()
+    //           }
+    //           className="p-1.5 rounded-md hover:bg-red-100 transition"
+    //         >
+    //           <Trash2 size={14} />
+    //         </button>
+    //       </div>
+    //     )}
+
+    //     {/* ✅ CANVAS */}
+    //     <div className="flex items-center justify-center min-h-full">
+    //       <div className="relative bg-white shadow-xl rounded-md hover:shadow-2xl transition">
+    //         <div ref={canvasRef} className="h-[1123px] w-[794px] rounded-md"/>
+    //       </div>
+    //     </div>
+    //   </div>
+    // </div>
+
     <div className="flex h-full w-full flex-1 justify-center overflow-auto bg-gray-100">
 
       <div className="relative flex w-full justify-center py-10">
@@ -414,10 +457,18 @@ export const CanvasWorkspace: React.FC = () => {
         {/* ✅ CANVAS */}
         <div className="flex items-center justify-center min-h-full">
           <div className="relative bg-white shadow-xl rounded-md hover:shadow-2xl transition">
-            <div ref={canvasRef} className="h-[1123px] w-[794px] rounded-md"/>
+
+            {/* 👉 NORMAL SIZE (NOT A4) */}
+            <div
+              ref={canvasRef}
+              className="h-[500px] w-[800px] rounded-md"
+            />
+
           </div>
         </div>
+
       </div>
     </div>
+
   );
 };

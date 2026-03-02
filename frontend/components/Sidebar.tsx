@@ -1,210 +1,213 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { uploadImage, removeBackground } from "@services/api";
 import { useEditorStore } from "@store/useEditorStore";
 import { Scissors, Type, Upload } from "lucide-react";
 
-interface SidebarProps {
-  onImageLoaded?: (dataUrl: string) => Promise<void>;
-  onBackgroundRemoved?: (dataUrl: string) => Promise<void>;
-}
-
-export const Sidebar: React.FC<SidebarProps> = ({
-  onImageLoaded,
-  onBackgroundRemoved
-}) => {
+export const Sidebar: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const lastFileRef = useRef<File | null>(null);
-  const { canvasAdapter, currentColor, currentFontSize, setIsLoading, setUploadedImage } = useEditorStore();
+
+  const {
+    canvasAdapter,
+    currentColor,
+    setIsLoading,
+    setUploadedImage
+  } = useEditorStore();
+
+  const [hovered, setHovered] = useState<string | null>(null);
+  const [active, setActive] = useState<string | null>(null);
+
+  const panel = active || hovered;
 
   const triggerFileDialog = () => {
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handleAddText = async (text: string, size: number) => {
+    if (!canvasAdapter) return;
+    await canvasAdapter.addText(text, {
+      color: currentColor,
+      fontSize: size
+    });
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (!file) return;
 
     lastFileRef.current = file;
 
     try {
       setIsLoading(true);
-
-      const response = await uploadImage(file);
-      const imageUrl = response.imageUrl;
-
-      setUploadedImage(imageUrl);
-
-      if (canvasAdapter) {
-        await canvasAdapter.addImage(imageUrl);
-      }
-
+      const res = await uploadImage(file);
+      setUploadedImage(res.imageUrl);
+      await canvasAdapter?.addImage(res.imageUrl);
     } finally {
       setIsLoading(false);
-      event.target.value = "";
     }
-  };
-
-  const handleAddText = async () => {
-    if (!canvasAdapter) return;
-    await canvasAdapter.addText("Your text", {
-      color: currentColor,
-      fontSize: currentFontSize
-    });
   };
 
   const handleRemoveBackground = async () => {
-    const file = lastFileRef.current;
-    if (!file) return;
+    if (!lastFileRef.current) return;
 
     try {
       setIsLoading(true);
-
-      const response = await removeBackground(file);
-      const base64 = response.imageBase64;
-
-      setUploadedImage(base64);
-
-      const adapter = useEditorStore.getState().canvasAdapter;
-
-      if (adapter) {
-        await adapter.removeBackground(base64);
-      }
-
+      const res = await removeBackground(lastFileRef.current);
+      setUploadedImage(res.imageBase64);
+      await canvasAdapter?.removeBackground(res.imageBase64);
     } finally {
       setIsLoading(false);
     }
   };
 
+  useEffect(() => {
+    const handleOutsideClick = () => {
+      setActive(null);
+    };
+
+    window.addEventListener("click", handleOutsideClick);
+
+    return () => window.removeEventListener("click", handleOutsideClick);
+  }, []);
+
   return (
-    // <aside className="flex h-full w-64 flex-col border-r border-border-subtle bg-surface-elevated/80 p-4 backdrop-blur-md">
-    //   <div className="mb-6">
-    //     <h1 className="text-sm font-semibold uppercase tracking-[0.24em] text-text-muted">
-    //       Studio Canvas
-    //     </h1>
-    //     <p className="mt-1 text-sm text-text-muted">
-    //       Image editor
-    //     </p>
-    //   </div>
+    <div className="flex  h-screen overflow-hidden">
 
-    //   <div className="space-y-3">
-    //     <button
-    //       type="button"
-    //       onClick={triggerFileDialog}
-    //       className="flex w-full items-center justify-between rounded-lg border border-dashed border-accent/40 bg-accent-soft px-3 py-2.5 text-left text-sm font-medium text-accent transition hover:border-accent hover:bg-accent hover:text-white"
-    //     >
-    //       <span>Upload image</span>
-    //       <span className="text-xs font-semibold uppercase tracking-wide">
-    //         PNG JPG
-    //       </span>
-    //     </button>
+      {/* 🌈 SIDEBAR */}
+      <aside
+       className="fixed left-0 top-15 h-screen w-20 bg-white border-r flex flex-col items-center py-5 text-gray-700 shadow-sm z-[1000]"
+      >
 
-    //     <button
-    //       type="button"
-    //       onClick={handleAddText}
-    //       className="w-full rounded-lg border border-border-subtle bg-surface px-3 py-2.5 text-sm font-medium text-text-main transition hover:border-accent hover:bg-accent-soft"
-    //     >
-    //       Add text
-    //     </button>
+        <div className="mb-10 text-xl font-bold">✨</div>
 
-    //     <button
-    //       type="button"
-    //       onClick={handleRemoveBackground}
-    //       className="w-full rounded-lg border border-transparent bg-neutral-900 px-3 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:bg-neutral-400"
-    //       disabled={!canvasAdapter}
-    //     >
-    //       Remove background
-    //     </button>
-    //   </div>
+        <div className="flex flex-col gap-6">
 
-    //   <input
-    //     ref={fileInputRef}
-    //     type="file"
-    //     accept="image/*"
-    //     onChange={handleFileChange}
-    //     className="hidden"
-    //   />
+          {["upload", "text", "remove"].map((item) => (
+            <button
+              key={item}
+              onMouseEnter={() => setHovered(item)}
+              onMouseLeave={() => setHovered(null)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setActive((prev) => (prev === item ? null : item));
+              }}
+              className="p-3 rounded-xl hover:bg-white/20 transition hover:scale-110"
+            >
+              {item === "upload" && <Upload size={22} />}
+              {item === "text" && <Type size={22} />}
+              {item === "remove" && <Scissors size={22} />}
+            </button>
+          ))}
 
-    //   <div className="mt-auto pt-6 text-xs text-text-muted">
-    //     <p>Upload an image, add text, then export as PNG.</p>
-    //     {/* TODO Extend sidebar with layers and templates sections */}
-    //   </div>
-    // </aside>
-
-
-    <aside className="flex h-full w-20 flex-col items-center border-r border-gray-200 bg-white py-4 relative">
-
-      {/* Logo */}
-      <div className="mb-8 text-sm font-bold text-gray-700">
-        SC
-      </div>
-
-      {/* Menu */}
-      <div className="flex flex-col items-center gap-6">
-
-        {/* Upload */}
-        <div className="group relative">
-          <button
-            onClick={triggerFileDialog}
-            className="p-3 rounded-xl hover:bg-gray-100 transition"
-          >
-            <Upload size={20} />
-          </button>
-
-          {/* Tooltip */}
-          <span className="absolute left-14 top-1/2 -translate-y-1/2 
-      whitespace-nowrap rounded-md bg-black text-white text-xs px-2 py-1 
-      opacity-0 group-hover:opacity-100 transition z-[9999]">
-            Upload
-          </span>
         </div>
+      </aside>
 
-        {/* Text */}
-        <div className="group relative">
-          <button
-            onClick={handleAddText}
-            className="p-3 rounded-xl hover:bg-gray-100 transition"
-          >
-            <Type size={20} />
-          </button>
+      {/* 🌟 PANEL */}
+      {panel && (
+        <div
+         className="fixed left-20 top-15 h-screen w-80 bg-[#f9fafb] shadow-2xl border-r p-4 overflow-y-auto z-[999]"
+          onMouseEnter={() => setHovered(panel)}
+          onMouseLeave={() => setHovered(null)}
+        >
 
-          <span className="absolute left-14 top-1/2 -translate-y-1/2 
-      whitespace-nowrap rounded-md bg-black text-white text-xs px-2 py-1 
-      opacity-0 group-hover:opacity-100 transition z-[9999]">
-            Text
-          </span>
+          {/* 📤 UPLOAD */}
+          {panel === "upload" && (
+            <>
+              <h3 className="font-semibold mb-4">Uploads</h3>
+
+              <button
+                onClick={triggerFileDialog}
+                className="w-full rounded-xl bg-gradient-to-r from-purple-500 to-indigo-500 text-white p-3"
+              >
+                Upload files
+              </button>
+            </>
+          )}
+
+          {/* 🔤 TEXT PANEL */}
+          {panel === "text" && (
+            <div className="flex flex-col gap-4">
+
+              {/* Search */}
+              <div className="relative">
+                <input
+                  placeholder="Search fonts and combinations"
+                  className="w-full rounded-2xl border py-3 pl-10 pr-4 text-sm"
+                />
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                  🔍
+                </span>
+              </div>
+
+              {/* Add Text Box */}
+              <button
+                onClick={() => handleAddText("Text", 24)}
+                className="rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-500 text-white py-3 font-semibold"
+              >
+                Add a text box
+              </button>
+
+              {/* Brand */}
+              <div className="flex justify-between font-semibold">
+                Brand Kit <span className="text-sm">Edit</span>
+              </div>
+
+              <button className="border p-3 rounded-xl">
+                Add your brand fonts
+              </button>
+
+              <div className="font-semibold text-gray-700">
+                Default text styles
+              </div>
+
+              <button
+                onClick={() => handleAddText("Heading", 42)}
+                className="p-4 bg-white border rounded-2xl text-2xl font-bold"
+              >
+                Add a heading
+              </button>
+
+              <button
+                onClick={() => handleAddText("Subheading", 28)}
+                className="p-4 bg-white border rounded-2xl text-lg font-semibold"
+              >
+                Add a subheading
+              </button>
+
+              <button
+                onClick={() => handleAddText("Body text", 16)}
+                className="p-4 bg-white border rounded-2xl text-sm"
+              >
+                Add a little bit of body text
+              </button>
+            </div>
+          )}
+
+          {/* ✂ REMOVE BG */}
+          {panel === "remove" && (
+            <>
+              <h3 className="font-semibold mb-4">Edit Image</h3>
+
+              <button
+                onClick={handleRemoveBackground}
+                className="w-full bg-red-500 text-white p-3 rounded-xl"
+              >
+                Remove Background
+              </button>
+            </>
+          )}
         </div>
+      )}
 
-        {/* Remove BG */}
-        <div className="group relative">
-          <button
-            onClick={handleRemoveBackground}
-            disabled={!canvasAdapter}
-            className="p-3 rounded-xl hover:bg-gray-100 transition disabled:opacity-40"
-          >
-            <Scissors size={20} />
-          </button>
-
-          <span className="absolute left-14 top-1/2 -translate-y-1/2 
-      whitespace-nowrap rounded-md bg-black text-white text-xs px-2 py-1 
-      opacity-0 group-hover:opacity-100 transition z-[9999]">
-            Remove BG
-          </span>
-        </div>
-
-      </div>
-
-      {/* Hidden input */}
+      {/* hidden input */}
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        hidden
         onChange={handleFileChange}
-        className="hidden"
       />
-
-    </aside>
+    </div>
   );
 };
-

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { EditorStore } from "@types/editor.types";
+import type { EditorStore } from "../../frontend/types/editor.types";
 
 export const useEditorStore = create<EditorStore>((set, get) => ({
   canvasAdapter: null,

@@ -41,110 +41,28 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({ onExport }) => {
     onExport(dataUrl);
   }, [canvasAdapter, onExport]);
 
-  // return (
-  //   <header className="flex h-16 items-center justify-between border-b border-border-subtle bg-surface-elevated/80 px-6 backdrop-blur-md">
-  //     <div className="flex items-center gap-3">
-  //       <div className="flex items-center gap-2 rounded-full bg-surface px-3 py-1.5 text-xs text-text-muted">
-  //         <span className="h-2 w-2 rounded-full bg-emerald-500" />
-  //         <span>Autosave ready</span>
-  //         {/* TODO Wire autosave to backend and storage */}
-  //       </div>
-  //     </div>
-
-
-  //     <div className="flex items-center gap-2 rounded-full border border-border-subtle bg-surface px-2 py-1.5">
-  //       {/* Undo */}
-  //       <button
-  //         disabled={!canvasAdapter}
-  //         onClick={() => {
-  //           (canvasAdapter as any)?.undo();
-  //         }}
-  //         className="flex items-center justify-center rounded-full p-2 hover:bg-neutral-200 transition"
-  //       >
-  //         <Undo2 size={16} />
-  //       </button>
-
-  //       {/* Redo */}
-  //       <button
-  //         disabled={!canvasAdapter}
-  //         onClick={() => {
-  //           (canvasAdapter as any)?.redo();
-  //         }}
-  //         className="flex items-center justify-center rounded-full p-2 hover:bg-neutral-200 transition"
-  //       >
-  //         <Redo2 size={16} />
-  //       </button>
-  //     </div>
-
-  //     <div className="flex items-center gap-4">
-  //       <div className="flex items-center gap-2 rounded-full border border-border-subtle bg-surface px-3 py-1.5">
-  //         <span className="text-xs font-medium text-text-muted">Font size</span>
-  //         <input
-  //           type="number"
-  //           min={8}
-  //           max={144}
-  //           value={currentFontSize}
-  //           onChange={handleFontSizeChange}
-  //           className="w-16 rounded-md border border-border-subtle bg-surface-elevated px-2 py-1 text-xs text-text-main focus:outline-none focus:ring-2 focus:ring-accent"
-  //         />
-  //       </div>
-
-  //       <div className="flex items-center gap-2 rounded-full border border-border-subtle bg-surface px-3 py-1.5">
-  //         <span className="text-xs font-medium text-text-muted">Color</span>
-  //         <input
-  //           type="color"
-  //           value={currentColor}
-  //           onChange={handleColorChange}
-  //           className="h-7 w-7 cursor-pointer rounded-full border border-border-subtle bg-transparent p-0"
-  //         />
-  //       </div>
-
-  //       <button
-  //         type="button"
-  //         onClick={handleExport}
-  //         className="rounded-full bg-accent px-4 py-2 text-sm font-medium text-white shadow-soft transition hover:bg-accent/90 disabled:cursor-not-allowed disabled:bg-neutral-400"
-  //         disabled={!canvasAdapter}
-  //       >
-  //         Export PNG
-  //       </button>
-  //     </div>
-
-  //   </header>
-  // );
-
-
   return (
-    <header className="flex h-16 items-center justify-between px-6 bg-white/80 backdrop-blur-md border-b shadow-sm sticky top-0 z-50">
+    <header className="sticky top-0 z-[1000] flex h-16 items-center justify-between px-6 
+  bg-white/70 backdrop-blur-xl border-b border-gray-200">
 
       {/* LEFT */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-5">
 
         {/* Logo */}
         <div className="flex items-center gap-2 text-gray-800 font-semibold">
-          <Sparkles size={18} className="text-purple-500" />
-          Studio Canvas
-        </div>
-
-        {/* Mode Toggle */}
-        <div className="flex items-center bg-gray-100 rounded-full p-1">
-          <button className="px-4 py-1.5 rounded-full bg-white shadow text-sm font-medium flex items-center gap-1">
-            <Edit3 size={14} />
-            Edit
-          </button>
-          <button className="px-4 py-1.5 text-sm text-gray-500 flex items-center gap-1 hover:text-black">
-            <Eye size={14} />
-            View
-          </button>
+          <div className="p-2 rounded-lg bg-gradient-to-r from-purple-500 to-indigo-500 text-white">
+            <Sparkles size={16} />
+          </div>
+          <span className="text-sm tracking-wide">Studio Canvas</span>
         </div>
 
       </div>
 
-      {/* CENTER */}
-      <div className="flex items-center gap-3 bg-white shadow-md px-4 py-2 rounded-full border">
-
+      {/* CENTER TOOLBAR */}
+      <div className="flex items-center gap-3 bg-white shadow-sm px-4 py-2 rounded-full border border-gray-200">
         {/* Undo */}
         <button
-          onClick={() => (canvasAdapter as any)?.undo()}
+          onClick={() => canvasAdapter?.undo()}
           disabled={!canvasAdapter}
           className="p-2 rounded-full hover:bg-gray-100 transition disabled:opacity-40"
         >
@@ -153,7 +71,7 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({ onExport }) => {
 
         {/* Redo */}
         <button
-          onClick={() => (canvasAdapter as any)?.redo()}
+          onClick={() => canvasAdapter?.redo()}
           disabled={!canvasAdapter}
           className="p-2 rounded-full hover:bg-gray-100 transition disabled:opacity-40"
         >
@@ -162,25 +80,25 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({ onExport }) => {
 
         <div className="w-px h-5 bg-gray-300" />
 
-        {/* Font */}
-        <div className="flex items-center gap-2 bg-gray-50 px-2 py-1 rounded-md border">
+        {/* Font Size */}
+        <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-lg border">
           <span className="text-xs text-gray-500">Size</span>
           <input
             type="number"
             value={currentFontSize}
             onChange={handleFontSizeChange}
-            className="w-12 bg-transparent text-sm outline-none"
+            className="w-12 bg-transparent text-sm outline-none text-gray-800"
           />
         </div>
 
         {/* Color */}
-        <div className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-md border">
+        <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-lg border">
           <span className="text-xs text-gray-500">Color</span>
           <input
             type="color"
             value={currentColor}
             onChange={handleColorChange}
-            className="h-7 w-7 rounded border"
+            className="h-6 w-6 rounded border cursor-pointer"
           />
         </div>
 
@@ -192,7 +110,7 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({ onExport }) => {
         {/* Autosave */}
         <div className="flex items-center gap-2 text-xs text-gray-500">
           <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
-          <span>All changes saved</span>
+          <span>Saved</span>
         </div>
 
         {/* Export */}
@@ -200,8 +118,8 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({ onExport }) => {
           onClick={handleExport}
           disabled={!canvasAdapter}
           className="flex items-center gap-2 px-5 py-2 rounded-full text-sm font-medium text-white 
-      bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 
-      shadow-lg hover:scale-105 transition disabled:opacity-40"
+        bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500 
+        shadow-md hover:scale-105 hover:shadow-lg transition disabled:opacity-40"
         >
           <Download size={16} />
           Export

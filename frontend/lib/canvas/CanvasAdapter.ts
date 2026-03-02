@@ -17,6 +17,11 @@ export interface CanvasAdapter {
   removeBackground: (imageUrl: string) => Promise<void>;
   destroy: () => void;
   getCanvas: () => Canvas | null;
+  getIsRestoring: () => boolean;
+  saveToJSON: () => string;
+  loadFromJSON: (json: string) => void;
+  undo: () => void;
+  redo: () => void;
 }
 
 import { Canvas } from "fabric/*";

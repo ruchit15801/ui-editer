@@ -14,8 +14,11 @@ export class FabricAdapter implements CanvasAdapter {
 
     const canvasElement = document.createElement("canvas");
 
-    canvasElement.width = 800;
-    canvasElement.height = 500;
+    const A4_WIDTH = 794;
+    const A4_HEIGHT = 1123;
+
+    canvasElement.width = A4_WIDTH;
+    canvasElement.height = A4_HEIGHT;
 
     containerElement.innerHTML = "";
     containerElement.appendChild(canvasElement);
@@ -37,8 +40,17 @@ export class FabricAdapter implements CanvasAdapter {
       this.selectedObject = null;
     });
 
-    this.canvas.on("object:modified", () => this.saveHistory());
-    this.canvas.on("object:removed", () => this.saveHistory());
+    this.canvas.on("object:added", () => {
+      if (!this.isRestoring) this.saveHistory();
+    });
+
+    this.canvas.on("object:modified", () => {
+      if (!this.isRestoring) this.saveHistory();
+    });
+
+    this.canvas.on("object:removed", () => {
+      if (!this.isRestoring) this.saveHistory();
+    });
 
     this.history = [];
     this.historyIndex = -1;
@@ -91,6 +103,10 @@ export class FabricAdapter implements CanvasAdapter {
   private isRestoring = false;
   getCanvas(): fabric.Canvas | null {
     return this.canvas;
+  }
+
+  getIsRestoring(): boolean {
+    return this.isRestoring;
   }
   saveHistory() {
     if (!this.canvas || this.isRestoring) return;
@@ -231,18 +247,6 @@ export class FabricAdapter implements CanvasAdapter {
     }
   }
 
-  // exportPNG(): string {
-  //   if (!this.canvas) {
-  //     return "";
-  //   }
-  //   return this.canvas.toDataURL({
-  //     format: "png",
-  //     quality: 1,
-  //     multiplier: 3
-  //   });
-  // }
-
-
   exportPNG(): string {
     if (!this.canvas) return "";
 
@@ -322,8 +326,17 @@ export class FabricAdapter implements CanvasAdapter {
   loadFromJSON(json: string): void {
     if (!this.canvas || !json) return;
 
+    this.isRestoring = true;
+
     this.canvas.loadFromJSON(json, () => {
       this.canvas?.renderAll();
+
+      const state = JSON.stringify(this.canvas?.toJSON());
+
+      this.history = [state];
+      this.historyIndex = 0;
+
+      this.isRestoring = false;
     });
   }
 

@@ -14,8 +14,8 @@ export class FabricAdapter implements CanvasAdapter {
 
     const canvasElement = document.createElement("canvas");
 
-    canvasElement.width = containerElement.clientWidth;
-    canvasElement.height = containerElement.clientHeight;
+    canvasElement.width = 800;
+    canvasElement.height = 500;
 
     containerElement.innerHTML = "";
     containerElement.appendChild(canvasElement);
@@ -231,14 +231,36 @@ export class FabricAdapter implements CanvasAdapter {
     }
   }
 
+  // exportPNG(): string {
+  //   if (!this.canvas) {
+  //     return "";
+  //   }
+  //   return this.canvas.toDataURL({
+  //     format: "png",
+  //     quality: 1,
+  //     multiplier: 3
+  //   });
+  // }
+
+
   exportPNG(): string {
-    if (!this.canvas) {
-      return "";
-    }
+    if (!this.canvas) return "";
+
+    const A4_WIDTH = 2480;
+    const A4_HEIGHT = 3508;
+
+    const canvasWidth = this.canvas.getWidth();
+    const canvasHeight = this.canvas.getHeight();
+
+    const scaleX = A4_WIDTH / canvasWidth;
+    const scaleY = A4_HEIGHT / canvasHeight;
+
+    const multiplier = Math.min(scaleX, scaleY);
+
     return this.canvas.toDataURL({
       format: "png",
       quality: 1,
-      multiplier: 2
+      multiplier
     });
   }
 

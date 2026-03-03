@@ -14,8 +14,7 @@ export const env = {
 
 export const configEnv = () => {
   if (!env.REMOVE_BG_API_KEY) {
-    // In demo environments we allow missing key and simply skip upstream call
-    // TODO In production, enforce required environment variables strictly
+    console.warn("REMOVE_BG_API_KEY is not set");
   }
 };
 

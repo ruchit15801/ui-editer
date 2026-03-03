@@ -19,17 +19,17 @@ export interface CanvasAdapter {
   getCanvas: () => Canvas | null;
   getIsRestoring: () => boolean;
   saveToJSON: () => string;
+  saveToLocalStorage: () => void;
   loadFromJSON: (json: string) => void;
   undo: () => void;
   redo: () => void;
   deleteSelected(): void;
+  deleteSelectedPage(): void;
   duplicateSelected(): Promise<void>;
   exportPNGWithWatermark: () => string;
 }
 
 import { Canvas } from "fabric/*";
-// Factory to create the active adapter implementation.
-// To switch canvas library, only change this file to use a different adapter.
 
 import { FabricAdapter } from "./FabricAdapter";
 

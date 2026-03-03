@@ -1,6 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as fabric from "fabric";
 import type { CanvasAdapter, InitializeOptions, TextOptions } from "./CanvasAdapter";
+import * as pdfjsLib from "pdfjs-dist/build/pdf";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 export class FabricAdapter implements CanvasAdapter {
   private canvas: fabric.Canvas | null = null;
@@ -48,11 +52,20 @@ export class FabricAdapter implements CanvasAdapter {
       if (!this.isRestoring) this.saveHistory();
     });
 
-    this.canvas.backgroundColor = options?.backgroundColor || "#ffffff";
+    this.canvas.backgroundColor = "#eef1f5"; 
     this.canvas.renderAll();
     const initialState = JSON.stringify(this.canvas.toJSON());
     this.history = [initialState];
     this.historyIndex = 0;
+
+    (fabric.Object.prototype as any).toObject = (function (toObject) {
+      return function (this: any) {
+        return {
+          ...toObject.call(this),
+          isPage: this.isPage || false
+        };
+      };
+    })(fabric.Object.prototype.toObject);
   }
 
   private handleSelection(e: any): void {
@@ -74,15 +87,26 @@ export class FabricAdapter implements CanvasAdapter {
   getIsRestoring(): boolean {
     return this.isRestoring;
   }
+
   saveHistory() {
     if (!this.canvas || this.isRestoring) return;
+
     const json = JSON.stringify(this.canvas.toJSON());
+
     if (this.historyIndex < this.history.length - 1) {
       this.history = this.history.slice(0, this.historyIndex + 1);
     }
+
     this.history.push(json);
     this.historyIndex = this.history.length - 1;
+
+    try {
+      localStorage.setItem("canvas-data", json);
+    } catch (err) {
+      console.warn("Storage failed", err);
+    }
   }
+
   undo() {
     if (!this.canvas) return;
     if (this.historyIndex <= 0) return;
@@ -146,32 +170,71 @@ export class FabricAdapter implements CanvasAdapter {
     this.canvas.renderAll();
     this.saveHistory();
   }
-  async addImage(imageUrl: string): Promise<void> {
-    if (!this.canvas) return;
 
-    try {
-      const htmlImg = new Image();
-      htmlImg.crossOrigin = "anonymous";
-      htmlImg.src = imageUrl;
+  getPages(): { id: number; top: number }[] {
+    if (!this.canvas) return [];
 
-      await new Promise((resolve, reject) => {
-        htmlImg.onload = resolve;
-        htmlImg.onerror = reject;
+    return this.canvas
+      .getObjects()
+      .filter((obj: any) => obj.isPage)
+      .sort((a: any, b: any) => a.top - b.top)
+      .map((obj: any, index: number) => ({
+        id: index,
+        top: obj.top
+      }));
+  }
+
+
+  deletePageByIndex(index: number) {
+      if (!this.canvas) return;
+
+      const pages = this.canvas
+        .getObjects()
+        .filter((obj: any) => obj.isPage)
+        .sort((a: any, b: any) => a.top - b.top);
+
+      const target = pages[index];
+      if (!target) return;
+
+      this.canvas.remove(target);
+
+      // RE-FLOW
+      const updatedPages = this.canvas
+        .getObjects()
+        .filter((obj: any) => obj.isPage)
+        .sort((a: any, b: any) => a.top - b.top);
+
+      updatedPages.forEach((page: any, i: number) => {
+        page.set("top", i * (1123 + 80));
       });
 
-      const img = new fabric.Image(htmlImg);
+      this.canvas.setHeight(updatedPages.length * (1123 + 80));
+      this.canvas.renderAll();
+      this.saveHistory();
+  }
+ 
+  async addImage(fileUrl: string): Promise<void> {
+    if (!this.canvas) return;
+
+    if (fileUrl.toLowerCase().includes(".pdf") || fileUrl.startsWith("data:application/pdf")) {
+      await this.renderPDF(fileUrl);
+      return;
+    }
+
+    try {
+      const img = await fabric.Image.fromURL(fileUrl, {
+        crossOrigin: 'anonymous'
+      });
 
       const canvasWidth = this.canvas.getWidth();
       const canvasHeight = this.canvas.getHeight();
 
       const scale = Math.min(
-        (canvasWidth * 0.8) / (img.width || 100),
-        (canvasHeight * 0.8) / (img.height || 100)
+        (canvasWidth * 0.8) / img.width,
+        (canvasHeight * 0.8) / img.height
       );
 
       img.set({
-        objectCaching: false,
-        selectable: true,
         left: canvasWidth / 2,
         top: canvasHeight / 2,
         originX: "center",
@@ -183,44 +246,167 @@ export class FabricAdapter implements CanvasAdapter {
       this.canvas.add(img);
       this.canvas.setActiveObject(img);
       this.canvas.renderAll();
-      this.canvas.requestRenderAll();
-
-
+      this.saveHistory();
     } catch (err) {
       console.error("Image load failed:", err);
     }
   }
-  async addText(text: string, options?: TextOptions): Promise<void> {
+
+  private async renderPDF(url: string) {
     if (!this.canvas) return;
 
-    const canvasWidth = this.canvas.getWidth();
-    const canvasHeight = this.canvas.getHeight();
+    const A4_WIDTH = 794;
+    const A4_HEIGHT = 1123;
+    const gap = 40;
 
-    const iText = new fabric.IText(text || "Double click to edit", {
-      left: canvasWidth / 2,
-      top: canvasHeight / 2,
-      originX: "center",
-      originY: "center",
-      fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif",
-      fontSize: options?.fontSize ?? 32,
-      fill: options?.color ?? "#111827",
-      editable: true,
-      selectable: true
+    const pdf = await pdfjsLib.getDocument(url).promise;
+    const totalPages = pdf.numPages;
+
+    let currentTop = this.canvas.getHeight();
+
+    for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
+      const page = await pdf.getPage(pageNumber);
+      const viewport = page.getViewport({ scale: 2 });
+
+      const tempCanvas = document.createElement("canvas");
+      const context = tempCanvas.getContext("2d")!;
+      tempCanvas.width = viewport.width;
+      tempCanvas.height = viewport.height;
+
+      await page.render({
+        canvasContext: context,
+        viewport
+      }).promise;
+
+      const pdfImage = new fabric.Image(tempCanvas);
+
+      const scale = Math.min(
+        A4_WIDTH / tempCanvas.width,
+        A4_HEIGHT / tempCanvas.height
+      );
+
+      pdfImage.scale(scale);
+
+      pdfImage.set({
+        left: A4_WIDTH / 2,
+        top: A4_HEIGHT / 2,
+        originX: "center",
+        originY: "center"
+      });
+
+      const pageBg = new fabric.Rect({
+        width: A4_WIDTH,
+        height: A4_HEIGHT,
+        fill: "#ffffff",
+        stroke: "#d1d5db",
+        strokeWidth: 1
+      });
+
+      const pageGroup = new fabric.Group([pageBg, pdfImage], {
+        left: 0,
+        top: currentTop,
+        selectable: true,
+        hasControls: false
+      });
+
+      (pageGroup as any).isPage = true;
+
+      this.canvas.add(pageGroup);
+
+      currentTop += A4_HEIGHT + gap;
+    }
+
+    this.canvas.setHeight(currentTop);
+    this.canvas.renderAll();
+  }
+
+  deleteSelectedPage(): void {
+    if (!this.canvas) return;
+
+    const active = this.canvas.getActiveObject() as any;
+    if (!active || !active.isPage) return;
+
+    const pageHeight = 1123 + 20; // A4 + gap
+    const deletedTop = active.top;
+
+    this.canvas.remove(active);
+
+    // Shift all pages below upward
+    this.canvas.getObjects().forEach((obj: any) => {
+      if (obj.isPage && obj.top > deletedTop) {
+        obj.set("top", obj.top - pageHeight);
+      }
     });
 
-    iText.set({
-      cornerStyle: "circle",
-      cornerColor: "#6366f1",
-      borderColor: "#6366f1",
-      cornerSize: 10,
-      transparentCorners: false
+    this.canvas.setHeight(this.canvas.getHeight() - pageHeight);
+    this.canvas.renderAll();
+    this.saveHistory();
+  }
+
+  addBlankPage(): void {
+    if (!this.canvas) return;
+
+    const A4_WIDTH = 794;
+    const A4_HEIGHT = 1123;
+    const gap = 40;
+
+    const existingPages = this.canvas
+      .getObjects()
+      .filter((obj: any) => obj.isPage);
+
+    const newTop = existingPages.length * (A4_HEIGHT + gap);
+
+    const pageBg = new fabric.Rect({
+      width: A4_WIDTH,
+      height: A4_HEIGHT,
+      fill: "#ffffff",
+      stroke: "#e5e7eb",
+      strokeWidth: 1,
+      rx: 8,
+      ry: 8
+    });
+
+    const pageGroup = new fabric.Group([pageBg], {
+      left: 0,
+      top: newTop,
+      selectable: true,
+      hasControls: false
+    });
+
+    (pageGroup as any).isPage = true;
+
+    this.canvas.add(pageGroup);
+
+    this.canvas.setHeight((existingPages.length + 1) * (A4_HEIGHT + gap));
+
+    this.canvas.renderAll();
+    this.saveHistory();
+  }
+
+  async addText(text: string) {
+    if (!this.canvas) return;
+
+    const active = this.canvas.getActiveObject() as any;
+
+    let top = this.canvas.getHeight() / 2;
+
+    if (active && active.isPage) {
+      top = active.top + 200;
+    }
+
+    const iText = new fabric.IText(text || "Edit me", {
+      left: 794 / 2,
+      top,
+      originX: "center",
+      originY: "center"
     });
 
     this.canvas.add(iText);
     this.canvas.setActiveObject(iText);
-    this.activeText = iText;
     this.canvas.renderAll();
+    this.saveHistory();
   }
+
   setTextColor(color: string): void {
     if (!this.canvas) return;
     const active = this.canvas.getActiveObject();
@@ -280,31 +466,23 @@ export class FabricAdapter implements CanvasAdapter {
       height: 40,
       rx: 12,
       ry: 12,
-      fill: new fabric.Gradient({
-        type: "linear",
-        gradientUnits: "pixels",
-        coords: { x1: 0, y1: 0, x2: 40, y2: 0 },
-        colorStops: [
-          { offset: 0, color: "#8b5cf6" },
-          { offset: 1, color: "#6366f1" }
-        ]
-      })
+      fill: "rgba(0,0,0,0.6)"   
     });
 
-    const sparkle = new fabric.Text("✨", {
-      fontSize: 18,
-      fill: "#ffffff",
-      originX: "center",
-      originY: "center",
-      left: 20,
-      top: 20
-    });
+  const sparkle = new fabric.Text("✨", {
+    fontSize: 18,
+    fill: "#d1d5db",   
+    originX: "center",
+    originY: "center",
+    left: 20,
+    top: 20
+  });
 
     const spacing = 10;
 
     const text = new fabric.Text("Studio Canvas", {
       fontSize: 20,
-      fill: "#111827",
+      fill: "#6b7280",
       fontWeight: "600",
       left: box.width! + spacing,
       top: 10
@@ -400,24 +578,50 @@ export class FabricAdapter implements CanvasAdapter {
     if (!this.canvas) return "";
     return JSON.stringify(this.canvas.toJSON());
   }
+
+  saveToLocalStorage(): void {
+    const json = this.saveToJSON();
+    if (!json || json === '{"version":"6.0.0","objects":[]}') return;
+
+    try {
+      localStorage.setItem("canvas-data", json);
+    } catch (err) {
+      console.warn("Storage quota exceeded", err);
+      try {
+        localStorage.removeItem("canvas-data");
+        localStorage.setItem("canvas-data", json);
+      } catch (e) {
+        console.error("Failed to save canvas data", e);
+      }
+    }
+  }
+  
   async loadFromJSON(json: string): Promise<void> {
     if (!this.canvas || !json) return;
+
     this.isRestoring = true;
 
     try {
-      const parsed = JSON.parse(json);
-      await this.canvas.loadFromJSON(parsed);
+      await this.canvas.loadFromJSON(json);
       this.canvas.renderAll();
       this.canvas.requestRenderAll();
-      const state = JSON.stringify(this.canvas.toJSON());
-      this.history = [state];
+
+      this.history = [json];
       this.historyIndex = 0;
+
+      const pages = this.canvas
+        .getObjects()
+        .filter((obj: any) => obj.isPage)
+        .sort((a: any, b: any) => a.top - b.top);
+
+      if (pages.length > 0) {
+        const lastPage = pages[pages.length - 1];
+        this.canvas.setHeight(lastPage.top + 1123 + 40);
+      }
     } catch (err) {
       console.error("Load JSON error:", err);
     } finally {
-      setTimeout(() => {
-        this.isRestoring = false;
-      }, 100);
+      this.isRestoring = false;
     }
   }
 

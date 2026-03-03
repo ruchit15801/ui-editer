@@ -4,7 +4,6 @@ import { env } from "../config/env";
 
 export const removeBackgroundFromBuffer = async (buffer: Buffer): Promise<Buffer> => {
   if (!env.REMOVE_BG_API_KEY) {
-    // When API key is not present, return the original buffer to keep the demo working
     return buffer;
   }
 

@@ -11,18 +11,14 @@ export class FabricAdapter implements CanvasAdapter {
     if (this.canvas) {
       this.canvas.dispose();
     }
-
     const canvasElement = document.createElement("canvas");
 
     const A4_WIDTH = 794;
     const A4_HEIGHT = 1123;
-
     canvasElement.width = A4_WIDTH;
     canvasElement.height = A4_HEIGHT;
-
     containerElement.innerHTML = "";
     containerElement.appendChild(canvasElement);
-
     this.canvas = new fabric.Canvas(canvasElement, {
       preserveObjectStacking: true,
       selection: true
@@ -52,12 +48,11 @@ export class FabricAdapter implements CanvasAdapter {
       if (!this.isRestoring) this.saveHistory();
     });
 
-    this.history = [];
-    this.historyIndex = -1;
-
-    this.saveHistory();
     this.canvas.backgroundColor = options?.backgroundColor || "#ffffff";
     this.canvas.renderAll();
+    const initialState = JSON.stringify(this.canvas.toJSON());
+    this.history = [initialState];
+    this.historyIndex = 0;
   }
 
   private handleSelection(e: any): void {
@@ -69,6 +64,60 @@ export class FabricAdapter implements CanvasAdapter {
     }
   }
 
+  private history: string[] = [];
+  private historyIndex = -1;
+  private isRestoring = false;
+  getCanvas(): fabric.Canvas | null {
+    return this.canvas;
+  }
+
+  getIsRestoring(): boolean {
+    return this.isRestoring;
+  }
+  saveHistory() {
+    if (!this.canvas || this.isRestoring) return;
+    const json = JSON.stringify(this.canvas.toJSON());
+    if (this.historyIndex < this.history.length - 1) {
+      this.history = this.history.slice(0, this.historyIndex + 1);
+    }
+    this.history.push(json);
+    this.historyIndex = this.history.length - 1;
+  }
+  undo() {
+    if (!this.canvas) return;
+    if (this.historyIndex <= 0) return;
+
+    this.historyIndex--;
+    this.restoreState();
+  }
+  redo() {
+    if (!this.canvas) return;
+    if (this.historyIndex >= this.history.length - 1) return;
+
+    this.historyIndex++;
+    this.restoreState();
+  }
+  private async restoreState() {
+    if (!this.canvas || this.historyIndex < 0) return;
+
+    this.isRestoring = true;
+    try {
+      const state = JSON.parse(this.history[this.historyIndex]);
+      await this.canvas.loadFromJSON(state);
+
+      this.canvas.discardActiveObject();
+      this.canvas.renderAll();
+      this.canvas.requestRenderAll();
+
+      localStorage.setItem("canvas-data", this.history[this.historyIndex]);
+    } catch (err) {
+      console.error("Restore state failed:", err);
+    } finally {
+      setTimeout(() => {
+        this.isRestoring = false;
+      }, 50);
+    }
+  }
   deleteSelected(): void {
     if (!this.canvas) return;
 
@@ -77,7 +126,6 @@ export class FabricAdapter implements CanvasAdapter {
       this.canvas.remove(active);
       this.canvas.discardActiveObject();
       this.canvas.renderAll();
-      this.saveHistory();
     }
   }
   async duplicateSelected(): Promise<void> {
@@ -98,48 +146,6 @@ export class FabricAdapter implements CanvasAdapter {
     this.canvas.renderAll();
     this.saveHistory();
   }
-  private history: string[] = [];
-  private historyIndex = -1;
-  private isRestoring = false;
-  getCanvas(): fabric.Canvas | null {
-    return this.canvas;
-  }
-
-  getIsRestoring(): boolean {
-    return this.isRestoring;
-  }
-  saveHistory() {
-    if (!this.canvas || this.isRestoring) return;
-    const json = JSON.stringify(this.canvas.toJSON());
-    if (this.history[this.historyIndex] === json) return;
-    this.history = this.history.slice(0, this.historyIndex + 1);
-    this.history.push(json);
-    this.historyIndex++;
-  }
-
-  undo() {
-    if (!this.canvas) return;
-    if (this.historyIndex <= 0) return;
-    this.historyIndex--;
-    this.isRestoring = true;
-    this.canvas.loadFromJSON(this.history[this.historyIndex], () => {
-      this.canvas?.renderAll();
-      this.isRestoring = false;
-    });
-  }
-  redo() {
-    if (!this.canvas) return;
-    if (this.historyIndex >= this.history.length - 1) return;
-
-    this.historyIndex++;
-    this.isRestoring = true;
-
-    this.canvas.loadFromJSON(this.history[this.historyIndex], () => {
-      this.canvas?.renderAll();
-      this.isRestoring = false;
-    });
-  }
-
   async addImage(imageUrl: string): Promise<void> {
     if (!this.canvas) return;
 
@@ -164,6 +170,8 @@ export class FabricAdapter implements CanvasAdapter {
       );
 
       img.set({
+        objectCaching: false,
+        selectable: true,
         left: canvasWidth / 2,
         top: canvasHeight / 2,
         originX: "center",
@@ -177,13 +185,11 @@ export class FabricAdapter implements CanvasAdapter {
       this.canvas.renderAll();
       this.canvas.requestRenderAll();
 
-      this.saveHistory();
 
     } catch (err) {
       console.error("Image load failed:", err);
     }
   }
-
   async addText(text: string, options?: TextOptions): Promise<void> {
     if (!this.canvas) return;
 
@@ -214,36 +220,32 @@ export class FabricAdapter implements CanvasAdapter {
     this.canvas.setActiveObject(iText);
     this.activeText = iText;
     this.canvas.renderAll();
-    this.saveHistory();
   }
-
   setTextColor(color: string): void {
     if (!this.canvas) return;
-
     const active = this.canvas.getActiveObject();
     if (active && active.type === "i-text") {
-      (active as fabric.IText).set("fill", color);
+      active.set("fill", color);
       this.canvas.renderAll();
-      this.activeText = active as fabric.IText;
+      this.saveHistory();
     } else if (this.activeText) {
       this.activeText.set("fill", color);
-      this.canvas.setActiveObject(this.activeText);
       this.canvas.renderAll();
+      this.saveHistory();
     }
   }
 
   setFontSize(size: number): void {
     if (!this.canvas) return;
-
     const active = this.canvas.getActiveObject();
     if (active && active.type === "i-text") {
-      (active as fabric.IText).set("fontSize", size);
+      active.set("fontSize", size);
       this.canvas.renderAll();
-      this.activeText = active as fabric.IText;
+      this.saveHistory();
     } else if (this.activeText) {
       this.activeText.set("fontSize", size);
-      this.canvas.setActiveObject(this.activeText);
       this.canvas.renderAll();
+      this.saveHistory();
     }
   }
 
@@ -264,8 +266,82 @@ export class FabricAdapter implements CanvasAdapter {
     return this.canvas.toDataURL({
       format: "png",
       quality: 1,
+      multiplier,
+    });
+  }
+
+  exportPNGWithWatermark(): string {
+    if (!this.canvas) return "";
+    const canvas = this.canvas;
+    const padding = 30;
+
+    const box = new fabric.Rect({
+      width: 40,
+      height: 40,
+      rx: 12,
+      ry: 12,
+      fill: new fabric.Gradient({
+        type: "linear",
+        gradientUnits: "pixels",
+        coords: { x1: 0, y1: 0, x2: 40, y2: 0 },
+        colorStops: [
+          { offset: 0, color: "#8b5cf6" },
+          { offset: 1, color: "#6366f1" }
+        ]
+      })
+    });
+
+    const sparkle = new fabric.Text("✨", {
+      fontSize: 18,
+      fill: "#ffffff",
+      originX: "center",
+      originY: "center",
+      left: 20,
+      top: 20
+    });
+
+    const spacing = 10;
+
+    const text = new fabric.Text("Studio Canvas", {
+      fontSize: 20,
+      fill: "#111827",
+      fontWeight: "600",
+      left: box.width! + spacing,
+      top: 10
+    });
+
+    const group = new fabric.Group([box, sparkle, text], {
+      selectable: false,
+      evented: false
+    });
+
+    group.set({
+      left: canvas.getWidth() - group.getScaledWidth() - padding,
+      top: canvas.getHeight() - group.getScaledHeight() - padding
+    });
+
+    const originalBg = canvas.backgroundColor;
+    canvas.backgroundColor = "#ffffff";
+    canvas.add(group);
+    canvas.renderAll();
+    const A4_WIDTH = 2480;
+    const A4_HEIGHT = 3508;
+    const multiplier = Math.min(
+      A4_WIDTH / canvas.getWidth(),
+      A4_HEIGHT / canvas.getHeight()
+    );
+
+    const dataUrl = canvas.toDataURL({
+      format: "png",
+      quality: 1,
       multiplier
     });
+
+    canvas.remove(group);
+    canvas.backgroundColor = originalBg;
+    canvas.renderAll();
+
+    return dataUrl;
   }
 
   async removeBackground(imageUrl: string): Promise<void> {
@@ -288,6 +364,8 @@ export class FabricAdapter implements CanvasAdapter {
 
       if (target) {
         img.set({
+          objectCaching: false,
+          selectable: true,
           left: target.left,
           top: target.top,
           originX: target.originX,
@@ -322,22 +400,25 @@ export class FabricAdapter implements CanvasAdapter {
     if (!this.canvas) return "";
     return JSON.stringify(this.canvas.toJSON());
   }
-
-  loadFromJSON(json: string): void {
+  async loadFromJSON(json: string): Promise<void> {
     if (!this.canvas || !json) return;
-
     this.isRestoring = true;
 
-    this.canvas.loadFromJSON(json, () => {
-      this.canvas?.renderAll();
-
-      const state = JSON.stringify(this.canvas?.toJSON());
-
+    try {
+      const parsed = JSON.parse(json);
+      await this.canvas.loadFromJSON(parsed);
+      this.canvas.renderAll();
+      this.canvas.requestRenderAll();
+      const state = JSON.stringify(this.canvas.toJSON());
       this.history = [state];
       this.historyIndex = 0;
-
-      this.isRestoring = false;
-    });
+    } catch (err) {
+      console.error("Load JSON error:", err);
+    } finally {
+      setTimeout(() => {
+        this.isRestoring = false;
+      }, 100);
+    }
   }
 
   destroy(): void {
@@ -348,4 +429,3 @@ export class FabricAdapter implements CanvasAdapter {
     }
   }
 }
-

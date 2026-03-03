@@ -36,18 +36,15 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({ onExport }) => {
 
   const handleExport = useCallback(() => {
     if (!canvasAdapter) return;
-    const dataUrl = canvasAdapter.exportPNG();
+    const dataUrl = canvasAdapter.exportPNGWithWatermark();
     if (!dataUrl) return;
     onExport(dataUrl);
   }, [canvasAdapter, onExport]);
 
   return (
-    <header className="sticky top-0 z-[1000] flex h-16 items-center justify-between px-6 
-  bg-white/70 backdrop-blur-xl border-b border-gray-200">
-
+    <header className="sticky top-0 z-[1000] flex h-16 items-center justify-between px-6 bg-white/70 backdrop-blur-xl border-b border-gray-200">
       {/* LEFT */}
       <div className="flex items-center gap-5">
-
         {/* Logo */}
         <div className="flex items-center gap-2 text-gray-800 font-semibold">
           <div className="p-2 rounded-lg bg-gradient-to-r from-purple-500 to-indigo-500 text-white">
@@ -55,26 +52,17 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({ onExport }) => {
           </div>
           <span className="text-sm tracking-wide">Studio Canvas</span>
         </div>
-
       </div>
 
       {/* CENTER TOOLBAR */}
       <div className="flex items-center gap-3 bg-white shadow-sm px-4 py-2 rounded-full border border-gray-200">
         {/* Undo */}
-        <button
-          onClick={() => canvasAdapter?.undo()}
-          disabled={!canvasAdapter}
-          className="p-2 rounded-full hover:bg-gray-100 transition disabled:opacity-40"
-        >
+        <button onClick={() => canvasAdapter?.undo()} disabled={!canvasAdapter} className="p-2 rounded-full hover:bg-gray-100 transition disabled:opacity-40">
           <Undo2 size={18} />
         </button>
 
         {/* Redo */}
-        <button
-          onClick={() => canvasAdapter?.redo()}
-          disabled={!canvasAdapter}
-          className="p-2 rounded-full hover:bg-gray-100 transition disabled:opacity-40"
-        >
+        <button onClick={() => canvasAdapter?.redo()} disabled={!canvasAdapter} className="p-2 rounded-full hover:bg-gray-100 transition disabled:opacity-40">
           <Redo2 size={18} />
         </button>
 
@@ -117,18 +105,12 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({ onExport }) => {
         <button
           onClick={handleExport}
           disabled={!canvasAdapter}
-          className="flex items-center gap-2 px-5 py-2 rounded-full text-sm font-medium text-white 
-        bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500 
-        shadow-md hover:scale-105 hover:shadow-lg transition disabled:opacity-40"
-        >
+          className="flex items-center gap-2 px-5 py-2 rounded-full text-sm font-medium text-white bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500 shadow-md hover:scale-105 hover:shadow-lg transition disabled:opacity-40">
           <Download size={16} />
           Export
         </button>
-
       </div>
-
     </header>
   );
 
 };
-

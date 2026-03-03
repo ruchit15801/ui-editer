@@ -22,6 +22,9 @@ export interface CanvasAdapter {
   loadFromJSON: (json: string) => void;
   undo: () => void;
   redo: () => void;
+  deleteSelected(): void;
+  duplicateSelected(): Promise<void>;
+  exportPNGWithWatermark: () => string;
 }
 
 import { Canvas } from "fabric/*";

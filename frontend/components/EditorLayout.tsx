@@ -21,7 +21,7 @@ export const EditorLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-surface via-slate-100 to-slate-200">
-      <div className="mx-auto flex min-h-screen max-w-7xl flex-col">
+      <div className="flex min-h-screen flex-col">
         <TopToolbar onExport={handleExport} />
         <main className="flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-border-subtle bg-surface-elevated shadow-soft">
           <Sidebar />

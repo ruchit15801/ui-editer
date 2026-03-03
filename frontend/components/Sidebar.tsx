@@ -73,15 +73,10 @@ export const Sidebar: React.FC = () => {
   }, []);
 
   return (
-    <div className="flex  h-screen overflow-hidden">
+    <div className="relative flex h-[calc(100vh-4rem)]">
 
-      {/* 🌈 SIDEBAR */}
-      <aside
-       className="fixed left-0 top-15 h-screen w-20 bg-white border-r flex flex-col items-center py-5 text-gray-700 shadow-sm z-[1000]"
-      >
-
+      <aside className="fixed top-16 left-0 h-[calc(100vh-4rem)] w-20 bg-white border-r flex flex-col items-center py-5 text-gray-700 shadow-sm z-40">
         <div className="mb-10 text-xl font-bold">✨</div>
-
         <div className="flex flex-col gap-6">
 
           {["upload", "text", "remove"].map((item) => (
@@ -93,8 +88,7 @@ export const Sidebar: React.FC = () => {
                 e.stopPropagation();
                 setActive((prev) => (prev === item ? null : item));
               }}
-              className="p-3 rounded-xl hover:bg-white/20 transition hover:scale-110"
-            >
+              className="p-3 rounded-xl hover:bg-white/20 transition hover:scale-110">
               {item === "upload" && <Upload size={22} />}
               {item === "text" && <Type size={22} />}
               {item === "remove" && <Scissors size={22} />}
@@ -107,93 +101,55 @@ export const Sidebar: React.FC = () => {
       {/* 🌟 PANEL */}
       {panel && (
         <div
-         className="fixed left-20 top-15 h-screen w-80 bg-[#f9fafb] shadow-2xl border-r p-4 overflow-y-auto z-[999]"
+          className="fixed top-16 left-20 h-[calc(100vh-4rem)] w-80 bg-[#f9fafb] shadow-2xl border-r p-4 overflow-y-auto z-30"
           onMouseEnter={() => setHovered(panel)}
-          onMouseLeave={() => setHovered(null)}
-        >
+          onMouseLeave={() => setHovered(null)}>
 
-          {/* 📤 UPLOAD */}
           {panel === "upload" && (
             <>
               <h3 className="font-semibold mb-4">Uploads</h3>
-
-              <button
-                onClick={triggerFileDialog}
-                className="w-full rounded-xl bg-gradient-to-r from-purple-500 to-indigo-500 text-white p-3"
-              >
+              <button onClick={triggerFileDialog} className="w-full rounded-xl bg-gradient-to-r from-purple-500 to-indigo-500 text-white p-3">
                 Upload files
               </button>
             </>
           )}
 
-          {/* 🔤 TEXT PANEL */}
           {panel === "text" && (
             <div className="flex flex-col gap-4">
-
-              {/* Search */}
               <div className="relative">
-                <input
-                  placeholder="Search fonts and combinations"
-                  className="w-full rounded-2xl border py-3 pl-10 pr-4 text-sm"
-                />
+                <input placeholder="Search fonts and combinations" className="w-full rounded-2xl border py-3 pl-10 pr-4 text-sm"/>
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                   🔍
                 </span>
               </div>
 
-              {/* Add Text Box */}
-              <button
-                onClick={() => handleAddText("Text", 24)}
-                className="rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-500 text-white py-3 font-semibold"
-              >
+              <button onClick={() => handleAddText("Text", 24)}
+                className="rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-500 text-white py-3 font-semibold">
                 Add a text box
-              </button>
-
-              {/* Brand */}
-              <div className="flex justify-between font-semibold">
-                Brand Kit <span className="text-sm">Edit</span>
-              </div>
-
-              <button className="border p-3 rounded-xl">
-                Add your brand fonts
               </button>
 
               <div className="font-semibold text-gray-700">
                 Default text styles
               </div>
 
-              <button
-                onClick={() => handleAddText("Heading", 42)}
-                className="p-4 bg-white border rounded-2xl text-2xl font-bold"
-              >
+              <button onClick={() => handleAddText("Heading", 42)} className="p-4 bg-white border rounded-2xl text-2xl font-bold">
                 Add a heading
               </button>
 
-              <button
-                onClick={() => handleAddText("Subheading", 28)}
-                className="p-4 bg-white border rounded-2xl text-lg font-semibold"
-              >
+              <button onClick={() => handleAddText("Subheading", 28)} className="p-4 bg-white border rounded-2xl text-lg font-semibold">
                 Add a subheading
               </button>
 
-              <button
-                onClick={() => handleAddText("Body text", 16)}
-                className="p-4 bg-white border rounded-2xl text-sm"
-              >
+              <button onClick={() => handleAddText("Body text", 16)} className="p-4 bg-white border rounded-2xl text-sm">
                 Add a little bit of body text
               </button>
             </div>
           )}
 
-          {/* ✂ REMOVE BG */}
           {panel === "remove" && (
             <>
               <h3 className="font-semibold mb-4">Edit Image</h3>
-
-              <button
-                onClick={handleRemoveBackground}
-                className="w-full bg-red-500 text-white p-3 rounded-xl"
-              >
+              <button onClick={handleRemoveBackground} className="w-full bg-red-500 text-white p-3 rounded-xl">
                 Remove Background
               </button>
             </>

@@ -76,7 +76,6 @@ export const Sidebar: React.FC = () => {
     <div className="relative flex h-[calc(100vh-4rem)]">
 
       <aside className="fixed top-16 left-0 h-[calc(100vh-4rem)] w-20 bg-white border-r flex flex-col items-center py-5 text-gray-700 shadow-sm z-40">
-        <div className="mb-10 text-xl font-bold">✨</div>
         <div className="flex flex-col gap-6">
 
           {["upload", "text", "remove"].map((item) => (

@@ -226,7 +226,7 @@ export const CanvasWorkspace: React.FC = () => {
               top: page.top + 30  
             }}
           >
-            <span className="text-sm font-medium text-gray-600">
+            <span className="text-[16px] font-medium text-gray-600">
               Page {index + 1} – A4
             </span>
 
@@ -237,7 +237,7 @@ export const CanvasWorkspace: React.FC = () => {
                 }
                 className="rounded-md p-1 hover:bg-red-100"
               >
-                <Trash2 size={14} />
+                <Trash2 size={18} />
               </button>
             </div>
           </div>

@@ -65,9 +65,31 @@ export const CanvasWorkspace: React.FC = () => {
       });
 
       const saved = localStorage.getItem("canvas-data");
-      if (saved && saved !== "{}") {
-        await adapter.loadFromJSON(saved);
+
+      if (saved) {
+        const parsed = JSON.parse(saved);
+
+        if (parsed?.objects?.length > 0) {
+          await adapter.loadFromJSON(saved);
+
+          const pageList = (adapter as any).getPages?.() || [];
+
+          if (pageList.length === 0) {
+            (adapter as any).addBlankPage();
+          }
+
+          setPages((adapter as any).getPages?.() || []);
+        } else {
+          (adapter as any).addBlankPage();
+          setPages((adapter as any).getPages?.() || []);
+        }
+      } else {
+        (adapter as any).addBlankPage();
       }
+
+      const pageList = (adapter as any).getPages?.() || [];
+      setPages(pageList);
+
       setCanvasAdapter(adapter);
       initializedRef.current = true;
     };
@@ -85,21 +107,6 @@ export const CanvasWorkspace: React.FC = () => {
     if (!canvasAdapter) return;
     const canvas = canvasAdapter.getCanvas();
     if (!canvas) return;
-
-    // const updateSelection = () => {
-    //   const obj = canvas.getActiveObject();
-    //   if (!obj) {
-    //     setSelected(null);
-    //     return;
-    //   }
-    //   const rect = obj.getBoundingRect();
-    //   setSelected(obj);
-    //   setPosition({
-    //     top: rect.top - 50,
-    //     left: rect.left + rect.width / 2
-    //   });
-    // };
-
 
     const updateSelection = () => {
       const obj = canvas.getActiveObject();
@@ -187,7 +194,7 @@ export const CanvasWorkspace: React.FC = () => {
     return () => clearInterval(handle);
   }, [handleExportSnapshot]);
 
-  
+
   return (
     <div className="flex h-full w-full justify-center overflow-auto bg-[#f3f4f6] editor-scrollbar">
       <div className="relative py-16">
@@ -223,7 +230,7 @@ export const CanvasWorkspace: React.FC = () => {
             key={index}
             className="absolute left-0 w-full flex items-center justify-between px-6 z-40"
             style={{
-              top: page.top + 30  
+              top: page.top + 30
             }}
           >
             <span className="text-[16px] font-medium text-gray-600">

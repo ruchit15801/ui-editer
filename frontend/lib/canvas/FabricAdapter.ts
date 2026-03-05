@@ -52,7 +52,7 @@ export class FabricAdapter implements CanvasAdapter {
       if (!this.isRestoring) this.saveHistory();
     });
 
-    this.canvas.backgroundColor = "#eef1f5"; 
+    this.canvas.backgroundColor = "#eef1f5";
     this.canvas.renderAll();
     const initialState = JSON.stringify(this.canvas.toJSON());
     this.history = [initialState];
@@ -186,33 +186,33 @@ export class FabricAdapter implements CanvasAdapter {
 
 
   deletePageByIndex(index: number) {
-      if (!this.canvas) return;
+    if (!this.canvas) return;
 
-      const pages = this.canvas
-        .getObjects()
-        .filter((obj: any) => obj.isPage)
-        .sort((a: any, b: any) => a.top - b.top);
+    const pages = this.canvas
+      .getObjects()
+      .filter((obj: any) => obj.isPage)
+      .sort((a: any, b: any) => a.top - b.top);
 
-      const target = pages[index];
-      if (!target) return;
+    const target = pages[index];
+    if (!target) return;
 
-      this.canvas.remove(target);
+    this.canvas.remove(target);
 
-      // RE-FLOW
-      const updatedPages = this.canvas
-        .getObjects()
-        .filter((obj: any) => obj.isPage)
-        .sort((a: any, b: any) => a.top - b.top);
+    // RE-FLOW
+    const updatedPages = this.canvas
+      .getObjects()
+      .filter((obj: any) => obj.isPage)
+      .sort((a: any, b: any) => a.top - b.top);
 
-      updatedPages.forEach((page: any, i: number) => {
-        page.set("top", i * (1123 + 80));
-      });
+    updatedPages.forEach((page: any, i: number) => {
+      page.set("top", i * (1123 + 80));
+    });
 
-      this.canvas.setHeight(updatedPages.length * (1123 + 80));
-      this.canvas.renderAll();
-      this.saveHistory();
+    this.canvas.setHeight(updatedPages.length * (1123 + 80));
+    this.canvas.renderAll();
+    this.saveHistory();
   }
- 
+
   async addImage(fileUrl: string): Promise<void> {
     if (!this.canvas) return;
 
@@ -466,17 +466,17 @@ export class FabricAdapter implements CanvasAdapter {
       height: 40,
       rx: 12,
       ry: 12,
-      fill: "rgba(0,0,0,0.6)"   
+      fill: "rgba(0,0,0,0.6)"
     });
 
-  const sparkle = new fabric.Text("✨", {
-    fontSize: 18,
-    fill: "#d1d5db",   
-    originX: "center",
-    originY: "center",
-    left: 20,
-    top: 20
-  });
+    const sparkle = new fabric.Text("✨", {
+      fontSize: 18,
+      fill: "#d1d5db",
+      originX: "center",
+      originY: "center",
+      left: 20,
+      top: 20
+    });
 
     const spacing = 10;
 
@@ -595,7 +595,7 @@ export class FabricAdapter implements CanvasAdapter {
       }
     }
   }
-  
+
   async loadFromJSON(json: string): Promise<void> {
     if (!this.canvas || !json) return;
 

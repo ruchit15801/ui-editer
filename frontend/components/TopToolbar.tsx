@@ -17,6 +17,53 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({ onExport }) => {
     setCurrentColor
   } = useEditorStore();
 
+  const [saveStatus, setSaveStatus] = React.useState<"saved" | "editing" | "saving">("saved");
+
+  const saveTimer = React.useRef<NodeJS.Timeout | null>(null);
+
+  React.useEffect(() => {
+    if (!canvasAdapter) return;
+
+    const canvas = canvasAdapter.getCanvas?.();
+    if (!canvas) return;
+
+    const handleChange = () => {
+
+      // user editing
+      setSaveStatus("editing");
+
+      // reset timer
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current);
+      }
+
+      // wait until user stops editing
+      saveTimer.current = setTimeout(() => {
+
+        setSaveStatus("saving");
+
+        // simulate save
+        setTimeout(() => {
+          setSaveStatus("saved");
+        }, 600);
+
+      }, 1500); // user stops editing for 1.5s
+    };
+
+    canvas.on("object:added", handleChange);
+    canvas.on("object:modified", handleChange);
+    canvas.on("object:removed", handleChange);
+    canvas.on("text:changed", handleChange);
+
+    return () => {
+      canvas.off("object:added", handleChange);
+      canvas.off("object:modified", handleChange);
+      canvas.off("object:removed", handleChange);
+      canvas.off("text:changed", handleChange);
+    };
+
+  }, [canvasAdapter]);
+
   const handleFontSizeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const numeric = Number(event.target.value);
     if (!Number.isFinite(numeric) || numeric <= 0) return;
@@ -97,8 +144,22 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({ onExport }) => {
 
         {/* Autosave */}
         <div className="flex items-center gap-2 text-xs text-gray-500">
-          <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
-          <span>Saved</span>
+
+          <span
+            className={`h-2 w-2 rounded-full animate-pulse ${saveStatus === "editing"
+              ? "bg-yellow-500"
+              : saveStatus === "saving"
+                ? "bg-blue-500"
+                : "bg-green-500"
+              }`}
+          />
+
+          <span>
+            {saveStatus === "editing" && "Editing..."}
+            {saveStatus === "saving" && "Saving..."}
+            {saveStatus === "saved" && "Saved"}
+          </span>
+
         </div>
 
         {/* Export */}

@@ -14,7 +14,9 @@ export const uploadToS3 = async (
       Bucket: env.S3_BUCKET,
       Key: key,
       Body: fileBuffer,
+      ContentDisposition: "inline",
       ContentType: mimetype || "application/octet-stream",
+      ACL: "public-read"
     })
   );
 

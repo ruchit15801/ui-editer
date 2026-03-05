@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import sharp from "sharp";
 import { asyncHandler } from "../utils/asyncHandler";
 import { removeBackgroundFromBuffer } from "../services/background.service";
 import { storeImageBuffer } from "../services/storage.service";
@@ -11,7 +12,20 @@ export const uploadImage = asyncHandler(async (req: Request, res: Response) => {
     return res.status(400).json({ message: "File required" });
   }
 
-  const imageUrl = await uploadToS3(file.buffer, file.originalname, file.mimetype);
+  const optimizedBuffer = await sharp(file.buffer)
+    .resize({
+      width: 2000,
+      height: 2000,
+      fit: "inside",
+      withoutEnlargement: true
+    })
+    .toBuffer();
+
+  const imageUrl = await uploadToS3(
+    optimizedBuffer,
+    file.originalname,
+    file.mimetype
+  );
 
   res.json({
     success: true,

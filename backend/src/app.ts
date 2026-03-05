@@ -20,7 +20,6 @@ export const createApp = (): Application => {
 
   app.use("/api", imageRouter);
 
-  // TODO Serve static assets or documentation from a dedicated folder
   app.use("/public", express.static(path.join(__dirname, "..", "public")));
 
   app.use(errorHandler);

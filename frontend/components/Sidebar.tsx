@@ -132,16 +132,12 @@ export const Sidebar: React.FC = () => {
     await canvasAdapter.addImage(localUrl);
 
     try {
-      setIsLoading(true);
-
       const res = await uploadImage(file);
 
       setUploadedImage(res.imageUrl);
 
     } catch (err) {
       console.error("Upload failed", err);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -269,6 +265,8 @@ export const Sidebar: React.FC = () => {
 
                   <img
                     src={item.src}
+                    loading="lazy"
+                    alt="Canvas element"
                     className="w-full h-20 object-contain"
                   />
 

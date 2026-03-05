@@ -8,7 +8,6 @@ export interface EditorState {
   isLoading: boolean;
   uploadedImage: string | null;
   historyStack: string[];
-  // TODO Add layers collection for multi layer editing
 }
 
 export interface EditorActions {

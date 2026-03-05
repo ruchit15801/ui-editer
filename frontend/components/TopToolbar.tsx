@@ -29,10 +29,8 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({ onExport }) => {
 
     const handleChange = () => {
 
-      // user editing
       setSaveStatus("editing");
 
-      // reset timer
       if (saveTimer.current) {
         clearTimeout(saveTimer.current);
       }
